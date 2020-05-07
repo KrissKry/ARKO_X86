@@ -11,10 +11,6 @@ mul_matrices:
 
     mov     r8, rdx 
 ;rdx gets reset @ mul/div, so content is moved to r8
-;dims[0] @ [rdi]    rows M1y
-;dims[1] @ [rdi+4]  columns M1x
-;dims[2] @ [rdi+8]  rows M2y
-;dims[3] @ [rdi+12] columns M2x
 
 ; mul algorithm:
 ; L1 from beginning of M1 to M1_Y                                                               (current_m1_y)
@@ -27,32 +23,27 @@ mul_matrices:
 ; l3 counter in r13d, cmp[rdi+4]
 ;[rcx] += rsi[r15d*[rdi+4] + r13d] * r8[[rdi+12]* r13d]
 
-    mov     r15d, 0
-    mov     r11d, 0
+    xor     r15d, r15d
+    
 loop_1:
-    cmp     r15d, [rdi]
-    je      loop_1_continue ; exit loop
+    
     xor     r14d, r14d      ; r14d=0
 
 loop_2:
-    cmp     r14d, [rdi+12]  ; if current_m2_x == M2_X
-    je      loop_2_continue
+    
     xor     r11d, r11d      ; m_out[counter] = 0
     xor     r13d, r13d      ; k  ==  r13d=0
 
 loop_3:
-    cmp     r13d, [rdi+4]   ; if k == M1_X
-    je      loop_3_continue
-
+    
     mov     eax, [rdi+4]    ; load m1_x to eax
     mul     r15d            ; multiply m1_x * current_m1_y
     mov     r9d, eax        ; store current_m1_y*m1_x in r9d
-    add     r9d, r15d       ; add k
+    add     r9d, r13d       ; add k
     shl     r9d, 2          ; mul M1[index*4] (sizeof(int)) for correct position
 
-
     mov     eax, [rdi+12]   ; load m2_x to eax
-    mul     r15d            ; multiply m2_x * k
+    mul     r13d            ; multiply m2_x * k
     mov     r10d, eax       ; store m2_x * k in r10d
     add     r10d, r14d      ; add current_m2_x
     shl     r10d, 2         ; mul M2[index*4]
@@ -64,24 +55,28 @@ loop_3:
     add     r11d, eax       ; m_out[counter] += M1[index] * M2[index]
     
     inc     r13d            ; increase counter (k)
-    jmp     loop_3
+    cmp     r13d, [rdi+4]   ; if k == M1_X
+    jne     loop_3
 
 loop_3_continue:
-    mov     [rcx], r11d     ; store m_out[counter] calculated in above loop to output matrix (res)
-    inc     r14d            ; increase current_m2_x
-    add     rcx, 4          ; increase pointer in res
-    jmp     loop_2
 
+    mov     [rcx], r11d     ; store m_out[counter] calculated in above loop to output matrix (res)
+    add     rcx, 4          ; increase pointer in res
 
 loop_2_continue:
 
-    inc     r15d            ; increase current_m1_y
-    jmp     loop_1
-
+    inc     r14d            ; increase current_m2_x
+    cmp     r14d, [rdi+12]  ; if current_m2_x == M2_X
+    jne     loop_2
+    
 loop_1_continue:
+
+    inc     r15d            ; increase current_m1_y
+    cmp     r15d, [rdi]
+    jne     loop_1
+
 exit:
+
     mov     rsp, rbp
     pop     rbp
     ret
-
-
