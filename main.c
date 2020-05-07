@@ -17,20 +17,19 @@ bool checkOperator(char c)
 void checkDims(char operand, int *dims) 
 {
     bool err = false;
-    if ( operand == '+' || operand == '-' ) {               //add-sub
+    if ( operand == '+' || operand == '-' ) {               //add-sub check
         if ( dims[0] != dims[2] || dims[1] != dims[3] )
             err = true;
     }    
-    else if ( operand == '*' ) {                            //mul
+    else if ( operand == '*' ) {                            //mul check
         if ( dims[0] != dims[3] )
             err = true;
     } 
-    else {                                                  //det
-        if ( dims[0] != dims[1] ) {
+    else {                                                  //det check
+        if ( dims[0] != dims[1] )                           // n x n only
             err = true;
-        }
 
-        if ( dims[0] > 3 || dims[1] > 3)
+        if ( dims[0] > 3 || dims[1] > 3 )                   //only up to 3x3 implemented
             err = true;
     }
 
@@ -59,15 +58,14 @@ void checkDims(char operand, int *dims)
 int getResNewLines(char operand, int *dims) 
 {
     if ( operand == '+' || operand == '-' || operand == '*')
-        return dims[0]; //return any matrix number of columns
+        return dims[0]; //return matrix number of columns
     else
         return 0;
 }
 
-void checkValueBoundaries(int *matrix) 
+void checkValueBoundaries(int *matrix, int size) 
 {
-    //bool err = false;
-    for (int i = 0; i < sizeof(matrix)/sizeof(int); i++)
+    for (int i = 0; i < size; i++)
     {
         if ( matrix[i] > MAX_MATRIX_VALUE || matrix[i] < -MAX_MATRIX_VALUE)
         {
@@ -88,20 +86,20 @@ void printHelp()
 
 int main (int argc, char* argv[]){
 
-    char operand;       // operand
-    int resNewLines;    // number of new lines in output matrix
-    int i;              // counter for for-loops
-    int* dims = NULL;          // dimensions array
-    int* M1 = NULL;            // 1st matrix array
-    int* M2 = NULL;            // 2nd matrix array
-    int* res = NULL;           // output matrix array
-    FILE* FI;                  // input file
-    FILE* FO;                  // output file
-    int* type;                 // argument of value 0 or 1 for add_sub_matrices
-    int temp;
-    int pick;
-    int sizeOfRes;                // holds sizeof output matrix array
-    bool resetNeeded = false;
+    char operand;               // operand
+    int resNewLines;            // number of new lines in output matrix
+    int i;                      // counter for for-loops
+    int* dims = NULL;           // dimensions array
+    int* M1 = NULL;             // 1st matrix array
+    int* M2 = NULL;             // 2nd matrix array
+    int* res = NULL;            // output matrix array
+    FILE* FI;                   // input file
+    FILE* FO;                   // output file
+    int* type;                  // argument of value 0 or 1 for add_sub_matrices
+    int temp;                   // stores temporary values
+    int pick;                   // stores user choice of action
+    int sizeOfRes;              // holds sizeof output matrix array, as sizeof(int *) is unreliable in C
+    bool resetNeeded = false;   // boolean for reseting memory on each file read
     
     printHelp();
 
@@ -153,13 +151,14 @@ int main (int argc, char* argv[]){
                 if (M1 == NULL)
                     //M1 = realloc(M1, sizeof(int)*dims[0]*dims[1]);
                     M1 = malloc(sizeof(int)*dims[0]*dims[1]);
+
                 /* Fill matrix1 with data */
                 for(i = 0; i < dims[0]*dims[1]; i++) 
                 {
                     fscanf(FI, "%d", &M1[i]);
                 }
 
-                checkValueBoundaries(M1);
+                checkValueBoundaries(M1, dims[0]*dims[1]);
 
                 /* Scan for column and row count of matrix2 if we're not calculating det */
                 if ( operand != 'd' )
@@ -176,7 +175,7 @@ int main (int argc, char* argv[]){
                         fscanf(FI, "%d", &M2[i]);
                     }
 
-                    checkValueBoundaries(M2);
+                    checkValueBoundaries(M2, dims[2]*dims[3]);
                 }
             
                 /* Close input file */
@@ -202,7 +201,10 @@ int main (int argc, char* argv[]){
                         res = malloc(sizeof(int) + 1);
                         sizeOfRes = 1;
                 }
+                /* boolean for next file read */
                 resetNeeded = true;
+
+
                 printf("File successfully read. Memory allocated.\n");
                 break;         
             }
@@ -230,8 +232,11 @@ int main (int argc, char* argv[]){
                         break;
                 }
 
+                /* Check if result values are in boundaries */
                 if (operand != 'd')
-                    checkValueBoundaries(res);
+                    checkValueBoundaries(res, sizeOfRes);
+
+                
                 printf("Matrix calculated using x86.\n");
                 break;
             }
@@ -241,9 +246,10 @@ int main (int argc, char* argv[]){
                 for (int i = 0; i < sizeOfRes; i++)
                 {
                     printf("%d ", res[i]);
-                    if ( ((i+1) % dims[0] == 0) && i > 0 )
+                    if ( ((i+1) % dims[0] == 0) && i > 0 ) //print new line after each row
                         printf("\n");
                 }
+                printf("\n");
                 break;
             }
             case 4: //save to output file
@@ -255,7 +261,6 @@ int main (int argc, char* argv[]){
                     exit(1);
                 }
 
-                printf("Saving calculated matrix\n");
                 resNewLines = getResNewLines(operand, dims);
 
                 /* if res is a matrix and not a single value*/
@@ -278,11 +283,13 @@ int main (int argc, char* argv[]){
                     fprintf(FO, "%d", res[0]);
                 }
 
-                /* Close output file, end program */
+                /* Close output file */
                 fclose(FO);
+
+                printf("Data saved to file.\n");
                 break;
             }
-            case 5:
+            case 5: //print help message
                 printHelp();
                 break;
             case 6: //exit

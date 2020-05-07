@@ -3,7 +3,7 @@ section .text
 global det_matrix
 ; dims in   %rdi
 ; m1 in     %rsi
-; res in     %rdx -> move to r8
+; res in    %rdx -> move to r8
 det_matrix:
     push    rbp
     mov     rbp, rsp
@@ -14,7 +14,6 @@ det_matrix:
     cmp     ecx, 2
     jg      det_3x3
     jl      det_1x1
-    ;je      det_2x2
 
 ; [0][1]
 ; [2][3]
@@ -44,7 +43,7 @@ det_3x3:
 ; [3][4][5]
 ; [6][7][8]
 ; mul by 4 to get correct index 
-; [0][4][8]+[1][5][6]+[2][3][7]-[2][4][6]-[0][5][7]-[8][1][3]
+; ([0][4][8]+[1][5][6]+[2][3][7])-([2][4][6]+[0][5][7]+[8][1][3])
 
     ;[0][4][8]
     mov     eax, [rsi]

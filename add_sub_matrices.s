@@ -7,7 +7,7 @@ global add_sub_matrices
 ; res in    %rcx
 ; type in   %r8
 add_sub_matrices:
-    ; preserve framepointer etc xd (Wtf)
+
     push    rbp
     mov     rbp, rsp
 
@@ -42,11 +42,11 @@ loop_start:
     jne     loop_sub
 
     ;add values from m1, m2
-    add     r13d, r14d
+    add     r14d, r13d
 
 loop_continue:
     ;store value in res
-    mov     [rcx], r13d
+    mov     [rcx], r14d
 
     ;increase pointers for m1, m2, res    
     add     rsi, 4
